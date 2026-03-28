@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import ContentCard from './components/ContentCard';
 import { Loader2, Brain, Rocket, KeyRound, X, Music, Disc } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -18,13 +18,30 @@ function App() {
   const [showKeyModal, setShowKeyModal] = useState(false);
   const [isIntroDone, setIsIntroDone] = useState(false);
   const [musicPlaying, setMusicPlaying] = useState(false);
+  const iframeRef = useRef(null);
+
+  const toggleMusic = () => {
+    if (!iframeRef.current) return;
+    if (musicPlaying) {
+      iframeRef.current.contentWindow.postMessage(JSON.stringify({event: 'command', func: 'pauseVideo'}), '*');
+      setMusicPlaying(false);
+    } else {
+      iframeRef.current.contentWindow.postMessage(JSON.stringify({event: 'command', func: 'playVideo'}), '*');
+      setMusicPlaying(true);
+    }
+  };
 
   const handleGenerate = async (e) => {
     e.preventDefault();
     if (!content.trim()) return;
 
     setLoading(true);
-    setMusicPlaying(true);
+    
+    if (!musicPlaying && iframeRef.current) {
+      iframeRef.current.contentWindow.postMessage(JSON.stringify({event: 'command', func: 'playVideo'}), '*');
+      setMusicPlaying(true);
+    }
+
     setError('');
     setResults(null);
 
@@ -131,19 +148,18 @@ function App() {
             </button>
           </form>
 
-          {/* Ebru Gündeş Soundtrack */}
-        {musicPlaying && (
+          {/* Ebru Gündeş Mobile-Safe Pre-Mounted Soundtrack */}
           <div className="absolute top-[-9999px] left-[-9999px] opacity-0 pointer-events-none">
             <iframe 
+              ref={iframeRef}
               width="560" 
               height="315" 
-              src="https://www.youtube.com/embed/YWVIebzbf28?autoplay=1&start=52" 
+              src="https://www.youtube.com/embed/YWVIebzbf28?enablejsapi=1&start=52" 
               frameBorder="0" 
               allow="autoplay; encrypted-media" 
               title="Ebru"
             />
           </div>
-        )}
 
         {/* Tone Selector */}
           <div className="flex flex-wrap justify-center gap-3 mt-6">
@@ -285,7 +301,7 @@ function App() {
         <motion.button
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          onClick={() => setMusicPlaying(!musicPlaying)}
+          onClick={toggleMusic}
           className={`fixed bottom-6 right-6 p-4 rounded-full z-50 glass-effect border transition-all shadow-[0_4px_30px_rgba(0,0,0,0.5)] flex items-center gap-2 ${musicPlaying ? 'border-[var(--color-apple-accent)] text-[var(--color-apple-accent)] hover:bg-[var(--color-apple-accent)]/10' : 'border-white/10 text-white/50 hover:text-white/80'}`}
           title="Müziği Aç / Kapat"
         >
